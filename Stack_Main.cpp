@@ -25,11 +25,11 @@ int main(int argc, const char* argv[])
     assert (stk->size == 0);
     assert (stk->capacity == capacity);
         
-    // Breaking stack to show how ASSERT_OK works
+    /* Breaking stack to show how ASSERT_OK works
     stk->array[3] = 3;
-    ASSERT_OK(stk)
-    //
-        
+    ASSERT_OK(stk, main)
+    */
+    
     StackPush(stk, 3);
     StackPush(stk, 4);
     StackPush(stk, 1);
@@ -39,11 +39,9 @@ int main(int argc, const char* argv[])
     StackPop(stk);
     StackPop(stk);
     StackPush(stk, 9);
-        
-    /*
-    StackDump(stk)
-    */
-        
+
+    ASSERT_OK(stk, main)
+
     stk = StackDestruct (stk);
     assert (stk == NULL);
     
@@ -71,12 +69,13 @@ void LogsClear ()
 //-------------------------------------------------------------------------------------------------------
 //! StackOK function:
 //!     1) Checks stk on following errors:
-//!        a) CONSTRUCTION_ERROR 
-//!        b) MEMORY_ERROR
-//!        c) SIZE_ERROR
-//!        d) CHECK_IF_EMPTY_ERROR
-//!        e) FILLING_ERROR
-//!        f) ALL_IS_OK
+//!        a) CANARY_ARRAY_PROTECTION_ERROR
+//!        b) CONSTRUCTION_ERROR 
+//!        c) MEMORY_ERROR
+//!        d) SIZE_ERROR
+//!        e) CHECK_IF_EMPTY_ERROR
+//!        f) FILLING_ERROR
+//!        g) ALL_IS_OK
 //!
 //!
 //! @param [out] stk - stack
@@ -85,6 +84,20 @@ void LogsClear ()
 //-------------------------------------------------------------------------------------------------------
 int StackOK (MyStack* stk)
 {
+  if (*CANARY_2L != 0XBEEF || *CANARY_2R != 0XBEEF)
+  {
+    //printf("Canary_2L = %X\n", *CANARY_2L);
+    //printf("Canary_2R = %X\n", *CANARY_2R );
+    return CANARY_STACK_PROTECTION_ERROR;
+  }
+  
+  if (*CANARY_1L != 0XC0FFEE || *CANARY_1R != 0XC0FFEE)
+  {
+    //printf("Canary_1L = %X\n", *CANARY_1L);
+    //printf("Canary_1R = %X\n", *CANARY_1R );
+    return CANARY_ARRAY_PROTECTION_ERROR;
+  }
+  
   if (stk == NULL)
   {
     return CONSTRUCTION_ERROR;
@@ -126,8 +139,14 @@ int StackOK (MyStack* stk)
 //-------------------------------------------------------------------------------------------------------
 //! StackConstruct function:
 //!     1) Creating structure MyStack stk for our stack (in dinamic memory)
-//!     2) Filling its capacity
-//!     3) Creating array (in dinamic memory) and changes corresponding variable in stk
+//!     2) Filling its fields
+//!     3) Creating array (in dinamic memory) and shifting pointer forward on first element (everything before is canary)
+//!         a) Array size is bigger than we need on two BYTES for canary protection
+//!         b) Filling cannaries we need to make conversions
+//!             b_1) double* to char*, otherwise memory distributor will index block of 8 bytes each
+//!             b_2) after changing pointer convert it back to double*
+//!     4) Fiiling canaries
+//!     5) Clearing stack
 //!
 //! @param [in] capacity - initial capacity of array
 //!
@@ -135,17 +154,25 @@ int StackOK (MyStack* stk)
 //-------------------------------------------------------------------------------------------------------
 MyStack* StackConstruct (size_t capacity)
 {
-    MyStack* stk = (MyStack*) calloc (1, sizeof(MyStack));
+    MyStack* stk = (MyStack*) calloc (1*sizeof(MyStack) + 2*CANARY_SIZE, sizeof(char*));
+    stk = (MyStack*)((char*)stk + CANARY_SIZE);
     assert (stk != NULL);
+    
+    *CANARY_2L = 0XBEEF;                  // Making left canary C0FFEE
+    *CANARY_2R = 0XBEEF;                  // And right too
     
     *stk = {true, 0, capacity, NULL};
     
-    stk->array = (double*) calloc (capacity, sizeof(double));
+    stk->array = (double*) calloc (capacity*sizeof(double) + 2*CANARY_SIZE, sizeof(char));     // Two extra bytes for canaries
     assert (stk->array != NULL);
+    stk->array = (double*)((char*)stk->array + CANARY_SIZE);                                   // Shifting pointer on 1 BYTE right (to the array)
     
+    *CANARY_1L = 0XC0FFEE;                  // Making left canary C0FFEE
+    *CANARY_1R = 0XC0FFEE;                  // And right too
+
     StackClear (stk);
     
-    ASSERT_OK(stk)
+    ASSERT_OK(stk, StackConstruct)
     
     return stk;
 }
@@ -153,7 +180,7 @@ MyStack* StackConstruct (size_t capacity)
 
 //-------------------------------------------------------------------------------------------------------
 //! StackDestruct function:
-//!     1) Deleting stk->array
+//!     1) Deleting arrray using pointer on Canary_1L
 //!     2) Deleting stk
 //!
 //! @param [out] stk - stack
@@ -162,10 +189,10 @@ MyStack* StackConstruct (size_t capacity)
 //-------------------------------------------------------------------------------------------------------
 MyStack* StackDestruct (MyStack* stk)
 {
-    ASSERT_OK(stk)
+    ASSERT_OK(stk, StackDestruct)
     
-    free (stk->array);
-    free (stk);
+    free (CANARY_1L);
+    free (CANARY_2L);
     
     return NULL;
 }
@@ -175,6 +202,7 @@ MyStack* StackDestruct (MyStack* stk)
 //! StackClear function:
 //!     1) Making all elements in stack NAN
 //!     2) Making stk->size zero (cause we've deleted all elements in stack)
+//!     3) And ofcourse making stk->is_empty true
 //!
 //! @param [out] stk - stack
 //!
@@ -184,17 +212,18 @@ void StackClear (MyStack* stk)
 {
     if (!stk->is_empty)
     {
-      ASSERT_OK(stk)
+      ASSERT_OK(stk, StackClear)
     }
     
     for (int i = 0; i < stk->capacity; i++)
     {
-        stk->array[i] = NAN;
+      stk->array[i] = NAN;
     }
     
     stk->size = 0;
+    stk->is_empty = true;
     
-    ASSERT_OK(stk)
+    ASSERT_OK(stk, StackClear)
 }
 
 
@@ -215,7 +244,7 @@ void StackPush (MyStack* stk, double elem)
 {    
     (stk->size == 0 && isnan(stk->array[0])) ? stk->is_empty = true : stk->is_empty = false;
     
-    ASSERT_OK(stk)
+    ASSERT_OK(stk, StackPush)
     
     if (stk->is_empty)
     {
@@ -232,7 +261,7 @@ void StackPush (MyStack* stk, double elem)
       stk->array[stk->size] = elem;
     }
     
-    ASSERT_OK(stk)
+    ASSERT_OK(stk, StackPush)
 }
 
 
@@ -253,7 +282,7 @@ void StackPush (MyStack* stk, double elem)
 //-------------------------------------------------------------------------------------------------------
 double StackPop (MyStack* stk)
 {
-    ASSERT_OK(stk)
+    ASSERT_OK(stk, StackPop)
     
     double top = 0;
     
@@ -262,20 +291,24 @@ double StackPop (MyStack* stk)
       top = stk->array[stk->size];
       stk->array[stk->size] = NAN;
       assert (isnan(stk->array[stk->size]));
+      
+      if (stk->size == 0)     // ASSERT_OK helped to debug that
+      {                       // there was no checking if we pop the last element in stack
+        stk->is_empty = true;
+      }
     }
-    
     
     if (stk->size > 0) // ASSERT_OK helped to debug that
     {                  // there was no if, and stk->size sometimes was -1
       stk->size--;
     }
     
-    if (stk->size <= 0.25 * stk->capacity && stk->capacity >= 4)
+    if (stk->size <= stk->capacity / 4 && stk->capacity >= 4)
     {
       StackFree(stk);
     }
     
-    ASSERT_OK(stk)
+    ASSERT_OK(stk, StackPop)
     
     return top;
 }
@@ -291,7 +324,7 @@ double StackPop (MyStack* stk)
 //-------------------------------------------------------------------------------------------------------
 double StackTop (MyStack* stk)
 {
-    ASSERT_OK(stk)
+    ASSERT_OK(stk, StackTop)
     
     return stk->array[stk->size];
 }
@@ -302,9 +335,11 @@ double StackTop (MyStack* stk)
 //!     1) It checks that stk is ok and that we correctly called this function
 //!     2) Doubles memory for the stk->array using realloc
 //!     3) It checks again that stk->array isn't NULL (that realloc worked well)
-//!     4) Then making all new elements NANs
-//!     5) And then doubles capacity of stk->array
-//!     6) Checks again if stk is ok
+//!     4) Reorganizes memory to use Canaries (just like in StrackConstruct)
+//!     5) Then making all new elements NANs
+//!     6) And then doubles capacity of stk->array
+//!     7) Filling Canaries (only after changing capacity!)
+//!     8) Checks again if stk is ok
 //!
 //! @param [out] stk  - stack
 //!
@@ -312,11 +347,12 @@ double StackTop (MyStack* stk)
 //-------------------------------------------------------------------------------------------------------
 void StackExpansion (MyStack* stk)
 {
-    ASSERT_OK(stk)
+    ASSERT_OK(stk, StackExpansion)
     assert (stk->size == stk->capacity - 1);
     
-    stk->array = (double*) realloc (stk->array, 2*(stk->capacity)*sizeof(double));
+    stk->array = (double*) realloc (CANARY_1L, 2*(stk->capacity)*sizeof(double) + 2*CANARY_SIZE);
     assert (stk->array != NULL);
+    stk->array = (double*)((char*)stk->array + CANARY_SIZE);
     
     size_t new_size = 2*stk->capacity;
     for (int i = stk->capacity; i < new_size; i++)
@@ -326,7 +362,10 @@ void StackExpansion (MyStack* stk)
     
     stk->capacity = new_size;
     
-    ASSERT_OK(stk)
+    *CANARY_1L = 0XC0FFEE;
+    *CANARY_1R = 0XC0FFEE;
+    
+    ASSERT_OK(stk, StackExpansion)
 }
 
 
@@ -334,8 +373,10 @@ void StackExpansion (MyStack* stk)
 //! StackFree function:
 //!     1) It checks that stk is ok and that we correctly called this function
 //!     2) Halves memory for the stk->array using realloc
-//!     3) And then halves stk->capacity
-//!     4) Checking again, that stk is ok
+//!     3) Reorganizes memory to use Canaries (just like in StrackConstruct)
+//!     4) And then halves stk->capacity
+//!     5) Filling Canaries (only after changing capacity!)
+//!     6) Checking again, that stk is ok
 //!
 //! @param [out] stk  - stack
 //!
@@ -343,15 +384,21 @@ void StackExpansion (MyStack* stk)
 //-------------------------------------------------------------------------------------------------------
 void StackFree (MyStack* stk)
 {
-  ASSERT_OK(stk)
+  ASSERT_OK(stk, StackFree)
+  
   assert (stk->size <= stk->capacity/4 && stk->capacity >= 4);
   
   size_t check = stk->capacity;
   
-  stk->array = (double*) realloc (stk->array, (stk->capacity)*sizeof(double) / 2);
-  stk->capacity = stk->capacity / 2;
+  stk->array = (double*) realloc (CANARY_1L, (stk->capacity)*sizeof(double) / 2 + 2*CANARY_SIZE);
+  assert (stk->array != NULL);
+  stk->array = (double*)((char*)stk->array + CANARY_SIZE);
   
+  stk->capacity = stk->capacity / 2;
   assert (check / 2 == stk->capacity);
   
-  ASSERT_OK(stk)
+  *CANARY_1L = 0XC0FFEE;
+  *CANARY_1R = 0XC0FFEE;
+  
+  ASSERT_OK(stk, StackFree)
 }

@@ -96,7 +96,7 @@ void Test_StackPush ()
     double exp_number[num_elements] = {-10, 7, 21000, -34.5, 22, 5051, 4004.007, -1, 0, 777};
     
     MyStack* test_stk = StackConstruct (num_elements);
-    ASSERT_OK(test_stk)
+    ASSERT_OK(test_stk, Test_StackPush)
     
     const size_t num_tests = 7;
     
@@ -112,7 +112,7 @@ void Test_StackPush ()
         {
             StackPush(test_stk, exp_number[i]);
         }
-        ASSERT_OK(test_stk)
+        ASSERT_OK(test_stk, Test_StackPush)
         
         for (int i = 0; i < num_test_el; i++)
         {
@@ -138,8 +138,9 @@ void Test_StackPush ()
         
         error = 0;
         StackClear(test_stk);
-        ASSERT_OK(test_stk)
+        ASSERT_OK(test_stk, Test_StackPush)
     }
+    ASSERT_OK(test_stk, Test_StackPush)
     test_stk = StackDestruct(test_stk);
 }
 
@@ -175,7 +176,7 @@ void Test_StackPop ()
     const size_t num_elements = 10;
     
     MyStack* test_stk = StackConstruct (num_elements);
-    ASSERT_OK(test_stk)
+    ASSERT_OK(test_stk, Test_StackPop)
     double exp_number[num_elements] = {-31, 96, -15304, 34.75, -20, 4351111, -5034.107, 1, 9, 0};
     double rec_number[num_elements] = {  0,  0,      0,     0,   0,       0,         0, 0, 0, 0};
     
@@ -188,7 +189,7 @@ void Test_StackPop ()
         {
             StackPush (test_stk, exp_number[i]);
         }
-        ASSERT_OK(test_stk)
+        ASSERT_OK(test_stk, Test_StackPop)
         
         srand(t);
         num_test_el = rand() % num_elements + 1;
@@ -226,7 +227,7 @@ void Test_StackPop ()
         StackClear(test_stk);
         error = 0;
         
-        ASSERT_OK(test_stk)
+        ASSERT_OK(test_stk, Test_StackPop)
     }
     test_stk = StackDestruct(test_stk);
 }
@@ -258,7 +259,7 @@ void Test_StackTop ()
     const size_t num_elements = 10;
     
     MyStack* test_stk = StackConstruct (num_elements);
-    ASSERT_OK(test_stk)
+    ASSERT_OK(test_stk, Test_StackTop)
     
     double exp_number[num_elements] = {-31, 96, -15304, 34.75, -20, 4351111, -5034.107, 1, 9, 0};
     
@@ -277,7 +278,7 @@ void Test_StackTop ()
         {
             StackPush (test_stk, exp_number[i]);
         }
-        ASSERT_OK(test_stk)
+        ASSERT_OK(test_stk, Test_StackTop)
         
         top = StackTop(test_stk);
         assert (top = test_stk->array[test_stk->size]);
@@ -293,7 +294,7 @@ void Test_StackTop ()
         }
         
         StackClear(test_stk);
-        ASSERT_OK(test_stk)
+        ASSERT_OK(test_stk, Test_StackTop)
     }
     test_stk = StackDestruct(test_stk);
 }
@@ -316,10 +317,10 @@ void Test_StackExpansion ()
     const size_t num_elements = 10;
     
     MyStack* test_stk = StackConstruct (num_elements);
-    ASSERT_OK(test_stk)
+    ASSERT_OK(test_stk, Test_StackExpansion)
     
-    double exp_number [20] = {-31, 96, -15304, 34.75, -20, 4351111, -5034.107,  1, 9, 0, -10,  7,  21000, -34.5,  22,    5051,  4004.007, -1, 0, 777};
-    double rec_number [20] = {  0,  0,      0,     0,   0,       0,         0,  0, 0, 0,    0,  0,      0,     0,   0,       0,        0,  0, 0, 0};
+    double exp_number [2*num_elements] = {-31, 96, -15304, 34.75, -20, 4351111, -5034.107,  1, 9, 0, -10,  7,  21000, -34.5,  22,    5051,  4004.007, -1, 0, 777};
+    double rec_number [2*num_elements] = {  0,  0,      0,     0,   0,       0,         0,  0, 0, 0,    0,  0,      0,     0,   0,       0,        0,  0, 0, 0};
     
     const size_t num_tests = 7;
     
@@ -327,22 +328,21 @@ void Test_StackExpansion ()
     for (int t = 0; t < num_tests; t++)
     {
         srand(t);
-        num_test_el = rand() % num_elements + 1;
+        num_test_el = rand() % num_elements + num_elements + 1;
         assert (num_test_el > 0);
-        assert (num_test_el <= num_elements);
         
-        for (int i = 0; i < 2*num_test_el; i++)
+        for (int i = 0; i < num_test_el; i++)
         {
             StackPush(test_stk, exp_number[i]);
         }
-        ASSERT_OK(test_stk)
+        ASSERT_OK(test_stk, Test_StackExpansion)
         
-        for (int i = 2*num_test_el-1; i >= 0; i--)
+        for (int i = num_test_el-1; i >= 0; i--)
         {
             rec_number[i] = StackPop(test_stk);
             if (rec_number[i] != exp_number[i])
             {
-                error = 1;
+              error = 1;
             }
         }
         
@@ -351,9 +351,10 @@ void Test_StackExpansion ()
         {
             printf ("#Test %d is Bad\n", t + 1);
             printf (" Expected:    Recieved:\n");
-            for (int i = 0; i < num_elements; i++)
+            printf ("stk->capacity = %d\n", test_stk->capacity);
+            for (int i = 0; i < num_test_el; i++)
             {
-                printf("%d %d\n", exp_number[i], rec_number[i]);
+                printf("%lg %lg\n", exp_number[i], rec_number[i]);
             }
         }
         else
@@ -396,6 +397,7 @@ void Test_StackFree ()
     
     const size_t num_elements = 20;
     MyStack* test_stk = StackConstruct (num_elements);
+    ASSERT_OK(test_stk, Test_StackFree)
     
     double exp_number [num_elements] = {-31, 96, -15304, 34.75, -20, 4351111, -5034.107,  1, 9, 0, -10,  7,  21000, -34.5,  22,    5051,  4004.007, -1, 0, 777};
     
@@ -410,7 +412,7 @@ void Test_StackFree ()
         {
             StackPush (test_stk, exp_number[i]);
         }
-        ASSERT_OK(test_stk)
+        ASSERT_OK(test_stk, Test_StackFree)
         
         result = test_stk->capacity;
         temp = 0;
@@ -424,7 +426,7 @@ void Test_StackFree ()
         {
           temp = StackPop(test_stk);
         }
-        ASSERT_OK(test_stk)
+        ASSERT_OK(test_stk, Test_StackFree)
         
         while ((num_elements - num_test_el - 1 <= (result / 4)) && result >= 4)        // num_elements - num_test_el is bigger then size on 1
         {                                                                              // so we should decrease difference on 1 (in StackPop comparation going by size)
@@ -445,7 +447,7 @@ void Test_StackFree ()
         
         /* Breaking stack to show, that ASSERT_OK works not only with stk in main
         test_stk->array[1] = 1;
-        ASSERT_OK(test_stk)
+        ASSERT_OK(test_stk, Test_StackFree)
         */
     }
     test_stk = StackDestruct(test_stk);

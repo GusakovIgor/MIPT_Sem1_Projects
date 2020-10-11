@@ -1,5 +1,5 @@
 Stack.exe: Stack_Main.o UnitTests.o
-	g++ Stack_Main.o UnitTests.o MyStack.h -o Stack.exe
+	g++ Stack_Main.o UnitTests.o -o Stack.exe
 
 Stack_Main.o: Stack_Main.cpp
 	g++ -c Stack_Main.cpp -DSUPERDEBUG

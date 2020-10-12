@@ -1,8 +1,14 @@
-Stack.exe: Stack_Main.o UnitTests.o
-	g++ Stack_Main.o UnitTests.o MyStack.h -o Stack.exe
+Stack.exe: Stack_Main.o UnitTests.o Log_functions.o Stack_functions.o
+	g++ Stack_Main.o UnitTests.o Log_functions.o Stack_functions.o -o Stack.exe
 
 Stack_Main.o: Stack_Main.cpp
 	g++ -c Stack_Main.cpp
 
 UnitTests.o: UnitTests.cpp
 	g++ -c UnitTests.cpp
+
+Log_functions.o: Log_functions.cpp
+	g++ -c Log_functions.cpp
+
+Stack_functions.o: Stack_functions.cpp
+	g++ -c Stack_functions.cpp

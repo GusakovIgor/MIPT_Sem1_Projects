@@ -4,8 +4,9 @@ int main()
 {
     struct text program = {0, NULL, NULL};
     program.name = (char*) calloc (MAX_FILENAME + 1, sizeof(char));       // + 1 for converting .txt into .code
-    printf("Please, enter name of the TXT file with your programm:\n");
-    scanf ("%s", program.name);
+    assert (program.name);
+    printf ("Please, enter name of the TXT file with your programm: ");
+    scanf  ("%s", program.name);
     
     if (strlen(program.name) > MAX_FILENAME)
     {
@@ -13,8 +14,6 @@ int main()
         assert(!"OK");
     }
     
-    
-    //char* program_name_old = program_name;
     Compiler (&program);
     
     free(program.name);
@@ -27,69 +26,13 @@ int main()
 void Compiler (struct text* program)
 {   
     
-    program->size = Size_Getter(program->name);
-    
-    program->ptr = (char*) calloc (program->size + 1, sizeof(char));
-    assert (program->ptr != NULL);
-    
-    program->size = Text_Reader(program);
-    
-    // NAME PROCESSING
+    size_t num_symb = TextGetter (program);
+    program->num_lines = LinesCounter (program->ptr, num_symb);
+
     NameProcessing (program);
-    //NAME PROCESSING
     
-    CodeMaker (program);
+    CodeMaker (program, num_symb);
     
-}
-
-//----------------------------------------------------------------------
-//! Size_Getter function: finds out size of file in bytes and returns it
-//!     1) Opening file
-//!     2) Declaring a standart struct of type finfo, that will contain info about our file
-//!     3) Using this structure getting the file size, and returning them
-//!
-//! @param [in]  name - name (const char*) of the file, which size we need to know
-//!
-//! @return      size - size (in bytes) of the file, which size we need to know
-//!
-//----------------------------------------------------------------------
-size_t Size_Getter (const char* name)
-    {
-    FILE* Onegin = fopen(name, "r");
-    
-    struct stat finfo;
-    stat(name, &finfo);
-    size_t size = finfo.st_size;
-        
-    fclose(Onegin);
-    
-    return size;
-    }
-
-//----------------------------------------------------------------------
-//! Text_Reader function: reads text in an array
-//!     1) It opens file and using fread() writing whole Onegin file in text array
-//!     2) fread() returns amount of symbals in Onegin, so function writes it in num_symb
-//!     3) Then function closes file Onegin and returns num_symb
-//!
-//! @param [out]  text - array we are working with
-//! @param [in]   size - size (in bytes) of the file, which we need to read
-//! @param [in]   name - name (const char*) of the file, which we need to read
-//!
-//! @return       num_symb - amount of symbals in text (including \n \r and other service symbals)
-//!
-//char* text, size_t size, const char* name
-//----------------------------------------------------------------------
-size_t Text_Reader (text* program)
-{
-    FILE* text = fopen(program->name, "r");
-    
-    size_t num_symb = fread (program->ptr, sizeof(char), program->size, text);
-    *(program->ptr + num_symb) = '\0';
-    
-    fclose(text);
-    
-    return num_symb;
 }
 
 
@@ -106,114 +49,142 @@ void NameProcessing (text* program)
         program->name[i] = extension[j];
     }
     
-    printf ("\n%s", program->name);
+    printf ("\nYou can see bite-code of your program in file: %s\n", program->name);
 }
 
 
-//----------------------------------------------------------------------
-//! Lines_Counter function: counting Not Empty lines in text and deleting '\n' from it
-//!     1) It gets array of char
-//!     2) Runs through all elements in it
-//!     3) If element is '\n' changing it on '\0'
-//!     4) And if it is also the first of consecutive (подряд идущих) '\n' function counts it
-//!
-//! @param [out]  text        - array we are working with
-//! @param [in]   num_symbals - amount of symbals in that array
-//!
-//! @return       num_lines   - amount of Not Empty lines in array we're working with
-//!
-//----------------------------------------------------------------------
-void CodeMaker (text* program)
+size_t TextGetter (text* program)
 {
-    FILE* bite_code = fopen (program->name, "w");
-    assert (program->ptr != 0);
+    size_t size = SizeGetter (program->name);
+    program->ptr = (char*) calloc (size + 1, sizeof(char));
+    assert (program->ptr != NULL);
     
-    char last_ok = '0';
+    size_t num_symbals = TextReader (program, size);
+    assert (num_symbals != NULL);
+    
+    return num_symbals;
+}
+
+
+size_t SizeGetter (const char* name)
+{
+    FILE* file = fopen (name, "r");
+    
+    struct stat finfo;
+    stat(name, &finfo);
+    size_t size = finfo.st_size;
+        
+    fclose (file);
+    
+    return size;
+}
+
+
+size_t TextReader (text* program, size_t size)
+{
+    FILE* file = fopen (program->name, "r");
+    
+    size_t num_symb = fread (program->ptr, sizeof(char), size, file);
+    *(program->ptr + num_symb) = '\0';
+    
+    fclose (file);
+    
+    return num_symb;
+}
+
+
+size_t LinesCounter (char* text, size_t num_symbals)
+{
+    assert (text != 0);
+    size_t num_lines = 1;
+    
+    for (int i = 0; i < num_symbals - 1; i++)
+        if ( *(text + i) == '\n' || *(text + i) == ' ')               
+            {
+            *(text + i) = '\0';
+            if (*(text + i + 1) != '\n' && *(text + i) != ' ')
+                num_lines++;
+            }
+    
+    return num_lines;
+}
+
+
+void CodeMaker (text* program, size_t size)
+{
+    FILE* file = fopen (program->name, "wb");
     char* word = (char*) calloc (MAX_COMAND_LENGTH, sizeof(char));
-    int iter = 0;
-    int count_lines = 0;
-    bool in_word = false;
-    
-    for (int i = 0; i < program->size; i++)
-    {
-        if ( *(program->ptr + i) == '\n' && *(program->ptr + i + 1) != '\n')               // '\n' puts only when we need them
-        {
-            if (in_word)
-            {
-                count_lines++;
-                ComandsConverter(word, bite_code, count_lines);
-                    
-                printf("\n%s", word);
-                in_word = false;
-            }
-            fputc(*(program->ptr + i), bite_code);
-            last_ok = *(program->ptr + i);
-        }
-        else if (*(program->ptr + i) == ' ' && i != 0 && isalnum(*(program->ptr + i + 1)) && isalnum(last_ok))            //  ' ' puts only when we need them
-        {
-            if (in_word)
-            {
-                ComandsConverter(word, bite_code, count_lines);
-                printf("\n%s", word);
-                in_word = false;
-            }
-            fputc(*(program->ptr + i), bite_code);
-            last_ok = *(program->ptr + i);
-        }
-        else if (isalnum(*(program->ptr + i)))
-        {
-            if (!in_word)
-                in_word = true;
-            
-            word[iter++] = *(program->ptr + i);
-            last_ok = *(program->ptr + i);
-        }
-        
-        // Free word if we ended with current one
-        if (!in_word)
-        {
-            word[iter] = 0;
-            while (iter > 0)
-            {
-                word[--iter] = 0;
-            }
-        }
-        //
-        
-    }
-    
-    if (in_word)
-    {
-        ComandsConverter(word, bite_code, count_lines);
-        printf ("\n%s", word);
-        in_word = false;
-    }
-    
-    free (word);
-    
-    fclose (bite_code);
-}
+    char* pointer = program->ptr;
+    int   pos  =  0;
 
-void ComandsConverter (char* word, FILE* bite_code, int count_lines)
-{
-    char* comand_array[] = {"hlt", "in", "out", "push", "add", "sub", "mult", "segm", "pow", "sqrt", "sin", "cos"};
-    int t = -1;
-    for (; t < NUMBER_OF_COMANDS; t++)
+    int   check_lines = -1;
+
+    for (int i = 0; i < program->num_lines; i++)
     {
-        if (t > 0 && strcmp (word, comand_array[t]) == 1 || strpbrk(word, "1234567890"))
-        {
-            break;
-        }
+        sscanf (pointer, "%s%n", word, &pos);
+        pointer += pos + 1;
+        
+        check_lines = ComandsConverter (word, file);
     }
-    
-    if (t == NUMBER_OF_COMANDS)
+    if (check_lines != program->num_lines)
     {
-        printf ("\nBroken word is \"%s\"\n", word);
-        printf ("\nPlease, check program. Your comand on line %d doesn't match any of existing ones\n", count_lines);
+        printf ("INPUT ERROR: Bad format, please, enter your program in that way:\n");
         assert (!"OK");
     }
-    else
+
+    fclose (file);
+}
+
+
+int ComandsConverter (char* word, FILE* bite_code)
+{
+    char*   comand_array[] = {"hlt", "in", "out", "push", "pop", "add", "sub", "mul", "segm", "pow", "sqrt", "sin", "cos"};
+    char* register_array[] = {"", "rax", "rbx", "rcx", "rdx"};
+    
+    static int line = 1;
+    
+    static int last_comand = -1;
+    int t = -1;
+    int i =  1;
+    
+    for (t = -1; t < NUM_COMANDS; t++)
     {
-        fprintf (bite_code, "%d", word);
+        if (strpbrk (word, "1234567890") || (t >= 0 && strcmp (word, comand_array[t]) == 0))
+            break;
     }
+    for (i = 1; i <= NUM_REGISTERS; i++)
+    {
+        if (strcmp (word, register_array[i]) == 0)
+            break;
+    }
+    
+    CheckErrors(t, i, last_comand, line)
+    
+    if (t == -1)
+    {
+        if (last_comand == PUSH)
+            fprintf (bite_code, " 1 ");
+        fprintf (bite_code, "%d\n", atoi(word));
+        line++;
+    }
+    else
+        if (last_comand == PUSH)
+        {
+            fprintf (bite_code, " 2 ");
+            fprintf (bite_code, "%d\n", i);
+            line++;
+        }
+        else
+        {   
+            fprintf (bite_code, "%d", t);
+            if (t != PUSH && t != POP)
+            {
+                fprintf (bite_code, "\n");
+                line++;
+            }
+        }
+    
+    last_comand = t;
+    
+    return line;
 }

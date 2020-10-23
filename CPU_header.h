@@ -1,29 +1,37 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
+//#include <stdio.h>
+//#include <stdlib.h>
+//#include <string.h>
+//#include <assert.h>
 #include <sys\stat.h>
 #include <ctype.h>
+#include "Stack/MyStack.h"
 
-#define MAX_FILENAME 30
-#define MAX_COMAND_LENGTH 10
-#define NUM_COMANDS 13
-#define NUM_REGISTERS 4
+#define MAX_FILENAME 30         // For program->name
+#define MAX_CODE_LEN 100000  // For program->bin_buff
+#define MAX_COMAND_LEN 10    
+#define NUM_COMANDS 13          // For arrays with names of comands
+#define NUM_REGISTERS 4         // For arrays with names of registers
 
-enum comands   {    HLT  = 0, 
-                    IN   = 1, OUT, 
-                    PUSH = 3, POP,
-                    ADD  = 5, SUB, MULT, SEGM,
-                    POW  = 9, SQRT,
-                    SIN  = 11, COS  };
 
-enum registers {    RAX = 0, 
-                    RBX = 1, 
-                    RCX = 2, 
-                    RDX = 3     };
+// DEFINING COMMANDS
+#define DEF_CMD(name, num, arg, code)  \
+                CMD_##name = num,
+
+enum comands
+{
+    #include "Commands.h"
+};
+
+#undef DEF_CMD
+// END OF DEFINING COMMANDS
+
+enum registers {    RAX = 1, 
+                    RBX = 2, 
+                    RCX = 3, 
+                    RDX = 4     };
                     
 #define CheckErrors(cur_comand, cur_register, last_comand, line)                                                            \
-            if (last_comand != PUSH && last_comand != POP && cur_register != NUM_REGISTERS + 1)                             \
+            if (last_comand != CMD_PUSH && last_comand != CMD_POP && cur_register != NUM_REGISTERS + 1)                     \
             {                                                                                                               \
                 printf ("\n\nINPUT ERROR: You're trying to get register without comands for it on line %d\n", line);        \
                 printf ("             Please, use push (if you want to put register in stack)\n");                          \
@@ -31,7 +39,7 @@ enum registers {    RAX = 0,
                 assert (!"OK");                                                                                             \
             }                                                                                                               \
                                                                                                                             \
-            if ((last_comand == PUSH || last_comand == POP) && cur_register > NUM_REGISTERS && (cur_comand >= NUM_COMANDS)) \
+            if ((last_comand == CMD_PUSH || last_comand == CMD_POP) && cur_register > NUM_REGISTERS && (cur_comand >= NUM_COMANDS)) \
             {                                                                                                               \
                 printf ("\n\nINPUT ERROR: You're trying to use wrong register on line %d\n", line);                         \
                 printf ("There are registers, you can use:\n");                                                             \
@@ -41,33 +49,66 @@ enum registers {    RAX = 0,
                 assert (!"OK");                                                                                             \
             }                                                                                                               \
                                                                                                                             \
-            if ((cur_comand < 0 || cur_comand >= NUM_COMANDS) && last_comand != PUSH && cur_register == NUM_REGISTERS + 1)  \
+            if ((cur_comand < 0 || cur_comand >= NUM_COMANDS) && last_comand != CMD_PUSH && cur_register == NUM_REGISTERS + 1)  \
             {                                                                                                               \
                 printf ("\n\nINPUT ERROR: There is incorrect comand or register name in input file on line %d\n", line);    \
-                printf ("Comand   code - %d (NUM_COMANDS = %d)\n", t, NUM_COMANDS);                                         \
-                printf ("Register code - %d  (NUM_REGISTERS = %d)\n\n", i, NUM_REGISTERS);                                  \
+                printf ("Comand   code - %d (NUM_COMANDS = %d)\n", com_num, NUM_COMANDS);                                   \
+                printf ("Register code - %d  (NUM_REGISTERS = %d)\n\n", reg_num, NUM_REGISTERS);                            \
                 assert (!"OK");                                                                                             \
             }                                                                                                               \
                                                                                                                             \
             
 
 struct text;
+struct CPU;
+struct FileHeader;
 
-void Compiler (text* program);
+
+// Text_processing file
+text* ProgramConstructor (struct text* program);
 
 size_t TextGetter   (text* program);
 size_t SizeGetter   (const char* name);
 size_t TextReader   (text* program, size_t size);
-size_t LinesCounter (char* text, size_t num_symbals);
 
+size_t WordsCounter (char* text, size_t num_symbals);
 void NameProcessing (text* program);
+//---------------------------------------------------
 
-void CodeMaker        (text* program, size_t size);
-int  ComandsConverter (char* word, FILE* bite_code);
+
+// Assembler file
+void Assembler (text* program);
+int  FindRegNumber (char* temp, int count);
+//--------------------------------------------------
 
 struct text
 {
-    size_t num_lines;
+    size_t num_words;
     char* name;
-    char* ptr;
+    char* buff;
+    char* bin_buff;
+};
+
+
+struct CPU
+{
+    MyStack stack;
+    
+    double* code;
+    
+    int rip;
+    
+    double rax;
+    double rbx;
+    double rcx;
+    double rdx;
+};
+
+
+struct FileHeader
+{
+    short signature;
+    short version;
+    
+    size_t size;
 };

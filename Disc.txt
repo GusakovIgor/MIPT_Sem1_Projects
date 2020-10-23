@@ -1,0 +1,12 @@
+in
+push    4
+pow
+push  rdx
+add   
+in
+mul
+mul 
+sub
+sqrt
+out
+hlt

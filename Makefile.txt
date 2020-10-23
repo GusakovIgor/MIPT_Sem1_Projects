@@ -1,0 +1,17 @@
+MY_CODE = "jackofdimonds"
+
+action:
+	@echo $(MY_CODE)
+
+run_asm: Assembler.exe
+	Assembler.exe $(MY_CODE)
+
+run: Calculator.exe
+	Calculator.exe
+
+Calculator.exe: Calculator.o
+	g++ Calculator.o -o Calculator.exe
+
+Assembler.exe: $(MY_CODE) CPU_header.h Assembler.cpp Text_processing.cpp
+	g++ Assembler.cpp Text_processing.cpp -o Assembler.exe
+

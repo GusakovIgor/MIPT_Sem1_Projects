@@ -7,7 +7,7 @@
 #include "Stack/MyStack.h"
 
 #define MAX_FILENAME 30         // For program->name
-#define MAX_CODE_LEN 100000  // For program->bin_buff
+#define MAX_CODE_LEN 100000     // For program->bin_buff
 #define MAX_COMAND_LEN 10    
 #define NUM_COMANDS 13          // For arrays with names of comands
 #define NUM_REGISTERS 4         // For arrays with names of registers
@@ -72,7 +72,7 @@ size_t SizeGetter   (const char* name);
 size_t TextReader   (text* program, size_t size);
 
 size_t WordsCounter (char* text, size_t num_symbals);
-void NameProcessing (text* program);
+char*  NameProcessing (char* name);
 //---------------------------------------------------
 
 
@@ -92,16 +92,13 @@ struct text
 
 struct CPU
 {
-    MyStack stack;
+    MyStack* stack;
     
     double* code;
     
-    int rip;
+    int pc;
     
-    double rax;
-    double rbx;
-    double rcx;
-    double rdx;
+    double* registers;
 };
 
 

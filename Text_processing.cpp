@@ -5,26 +5,28 @@ text* ProgramConstructor (struct text* program)
     
     size_t num_symb = TextGetter (program);
     program->num_words = WordsCounter (program->buff, num_symb);
-    NameProcessing (program);
+    program->name = NameProcessing (program->name);
     
     return program;
 }
 
 
-void NameProcessing (text* program)
+char* NameProcessing (char* name)
 {
-    int len = strlen(program->name);
-    assert (program->name[len-4] == '.');
+    int len = strlen(name);
+    assert (name[len-4] == '.');
     
     const char* extension = ".bin";
     assert (extension[0] == '.');
     
     for (int i = len-4, j = 0; i <= len-1; i++, j++)
     {
-        program->name[i] = extension[j];
+        name[i] = extension[j];
     }
     
-    printf ("\nYou can see bite-code of your program in file: %s\n", program->name);
+    printf ("\nYou can see bite-code of your program in file: %s\n", name);
+
+    return name;
 }
 
 

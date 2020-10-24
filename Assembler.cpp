@@ -14,7 +14,6 @@ int main (int argc, const char* argv[])
     
     free (program->name);
     free (program->buff);
-    free (program->bin_buff);
     free (program);
     
     return 0;
@@ -31,11 +30,58 @@ void Assembler (text* program)
     int com_len = 0;
     int reg_number = 0;
     
+    #define DEF_CMD(name, num, arg, code)                                   \
+        else if (strcmp(temp, #name) == 0)                                  \
+        {                                                                   \
+            program->bin_buff[ofs] = CMD_##name;                            \
+            ofs += sizeof(char);                                            \
+            printf ("%d\n", CMD_##name); \
+                                                                            \
+            if (arg > 0)                                                    \
+            {                                                               \
+                count++;                                                    \
+                sscanf (program->buff + pos, "%s%n", temp, &com_len);       \
+                pos += com_len;                                             \
+                                                                            \
+                if (strpbrk(temp, "123456789"))                             \
+                {                                                           \
+                    program->bin_buff[ofs] = 1;                             \
+                    ofs += sizeof(char);                                    \
+                    printf (" 1 "); \
+                                                                            \
+                    *((double*) (program->bin_buff + ofs)) = atof(temp);    \
+                    ofs += sizeof(double);                                  \
+                    printf ("%lg\n", atof(temp));   \
+                }                                                           \
+                else                                                        \
+                {                                                           \
+                    program->bin_buff[ofs] = 2;                             \
+                    ofs += sizeof(char);                                    \
+                    printf (" 2 "); \
+                                                                            \
+                    reg_number = FindRegNumber (temp, count);               \
+                    program->bin_buff[ofs] = reg_number;                    \
+                    ofs += sizeof(char);                                    \
+                    printf ("%d\n", reg_number); \
+                }                                                           \
+            }                                                               \
+        }                                                                   \
+    
     for (int count = 0; count < program->num_words; count++)
     {
         sscanf (program->buff + pos, "%s%n", temp, &com_len);
         pos += com_len;
         
+        if (0) {}
+        #include "commands.h"
+        else
+        {
+            printf ("Syntax Error!\n");
+            printf ("In word: %s\n", temp);
+            assert (!"OK");
+        }
+        
+        /*
         if (strcmp(temp, "hlt") == 0)
         {
             program->bin_buff[ofs] = CMD_HLT;
@@ -55,8 +101,8 @@ void Assembler (text* program)
         {
             program->bin_buff[ofs] = CMD_PUSH;
             ofs += sizeof(char);
-            count++;
             
+            count++;
             sscanf (program->buff + pos, "%s%n", temp, &com_len);
             pos += com_len;
             
@@ -130,12 +176,17 @@ void Assembler (text* program)
         {
             program->bin_buff[ofs] = CMD_COS;
             ofs += sizeof(char);
-        }
+        }*/
     }
+    
+    #undef DEF_CMD
+    free(temp);
     
     FILE* code = fopen(program->name, "w+b");   // Why not creating file when mode is "wb"?...
     fwrite (program->bin_buff, ofs, 1, code);
     fclose(code);
+    
+    free (program->bin_buff);
 }
 
 int FindRegNumber (char* temp, int count)

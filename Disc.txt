@@ -1,9 +1,16 @@
 in
-push 4
-pow
-push rdx
-add
+pop rax
 in
+pop rbx
+in
+pop rcx
+
+push rbx
+push 2
+pow
+push 4
+push rax
+push rcx
 mult
 mult
 sub

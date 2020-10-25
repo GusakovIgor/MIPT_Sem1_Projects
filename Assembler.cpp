@@ -2,7 +2,7 @@
 
 int main (int argc, const char* argv[])
 {
-    text* program = (text*) calloc (1, sizeof(text*));
+    text* program = (text*) calloc (1, sizeof(text));
     
     program->name = (char*) calloc (MAX_FILENAME, sizeof(char));
     program->name = (char*) argv[1];
@@ -14,7 +14,10 @@ int main (int argc, const char* argv[])
     
     free (program->name);
     free (program->buff);
-    free (program);
+    
+    //printf("OK");
+    free (program);      //CANNOT FREE PROGRAM
+    //printf("OK");
     
     return 0;
 }
@@ -22,7 +25,7 @@ int main (int argc, const char* argv[])
 
 void Assembler (text* program)
 {
-    program->bin_buff = (char*) calloc (MAX_CODE_LEN, sizeof(char));
+    char* bin_buff = (char*) calloc (MAX_CODE_LEN, sizeof(char));
     char* temp = (char*) calloc (MAX_COMAND_LEN, sizeof(char));
     
     int ofs = 0;
@@ -33,11 +36,11 @@ void Assembler (text* program)
     #define DEF_CMD(name, num, arg, code)                                   \
         else if (strcmp(temp, #name) == 0)                                  \
         {                                                                   \
-            program->bin_buff[ofs] = CMD_##name;                            \
+            bin_buff[ofs] = CMD_##name;                                     \
             ofs += sizeof(char);                                            \
-            printf ("%d\n", CMD_##name); \
+            printf ("%d", CMD_##name); \
                                                                             \
-            if (arg > 0)                                                    \
+            if (num == CMD_push)                                            \
             {                                                               \
                 count++;                                                    \
                 sscanf (program->buff + pos, "%s%n", temp, &com_len);       \
@@ -45,26 +48,38 @@ void Assembler (text* program)
                                                                             \
                 if (strpbrk(temp, "123456789"))                             \
                 {                                                           \
-                    program->bin_buff[ofs] = 1;                             \
+                    bin_buff[ofs] = 1;                                      \
                     ofs += sizeof(char);                                    \
                     printf (" 1 "); \
                                                                             \
-                    *((double*) (program->bin_buff + ofs)) = atof(temp);    \
+                    *((double*) (bin_buff + ofs)) = atof(temp);             \
                     ofs += sizeof(double);                                  \
-                    printf ("%lg\n", atof(temp));   \
+                    printf ("%lg", atof(temp));   \
                 }                                                           \
                 else                                                        \
                 {                                                           \
-                    program->bin_buff[ofs] = 2;                             \
+                    bin_buff[ofs] = 2;                                      \
                     ofs += sizeof(char);                                    \
                     printf (" 2 "); \
                                                                             \
                     reg_number = FindRegNumber (temp, count);               \
-                    program->bin_buff[ofs] = reg_number;                    \
+                    bin_buff[ofs] = reg_number;                             \
                     ofs += sizeof(char);                                    \
-                    printf ("%d\n", reg_number); \
+                    printf ("%d", reg_number); \
                 }                                                           \
             }                                                               \
+            else if (num == CMD_pop)                                        \
+            {                                                               \
+                count++;                                                    \
+                sscanf (program->buff + pos, "%s%n", temp, &com_len);       \
+                pos += com_len;                                             \
+                                                                            \
+                reg_number = FindRegNumber (temp, count);                   \
+                bin_buff[ofs] = reg_number;                                 \
+                ofs += sizeof(char);                                        \
+                printf (" %d", reg_number); \
+            }                                                               \
+            printf("\n");   \
         }                                                                   \
     
     for (int count = 0; count < program->num_words; count++)
@@ -80,113 +95,41 @@ void Assembler (text* program)
             printf ("In word: %s\n", temp);
             assert (!"OK");
         }
-        
-        /*
-        if (strcmp(temp, "hlt") == 0)
-        {
-            program->bin_buff[ofs] = CMD_HLT;
-            ofs += sizeof(char);
-        }
-        else if (strcmp(temp, "in")  == 0)
-        {
-            program->bin_buff[ofs] = CMD_IN;
-            ofs += sizeof(char);
-        }
-        else if (strcmp(temp, "out") == 0)
-        {
-            program->bin_buff[ofs] = CMD_OUT;
-            ofs += sizeof(char);
-        }
-        else if (strcmp(temp, "push") == 0)
-        {
-            program->bin_buff[ofs] = CMD_PUSH;
-            ofs += sizeof(char);
-            
-            count++;
-            sscanf (program->buff + pos, "%s%n", temp, &com_len);
-            pos += com_len;
-            
-            if (strpbrk(temp, "123456789"))
-            {
-                program->bin_buff[ofs] = 1;
-                ofs += sizeof(char);
-                
-                *((double*) (program->bin_buff + ofs)) = atof(temp);
-                ofs += sizeof(double);
-            }
-            else
-            {
-                program->bin_buff[ofs] = 2;
-                ofs += sizeof(char);
-                
-                reg_number = FindRegNumber (temp, count);
-                program->bin_buff[ofs] = reg_number;
-                ofs += sizeof(char);
-            }
-        }
-        else if (strcmp(temp, "pop") == 0)
-        {
-            program->bin_buff[ofs] = CMD_POP;
-            ofs += sizeof(char);
-            count++;
-            
-            sscanf (program->buff + pos, "%s%n", temp, &com_len);
-            pos += com_len;
-            
-            reg_number = FindRegNumber (temp, count);
-            program->bin_buff[ofs] = reg_number;
-            ofs += sizeof(char);
-        }
-        else if (strcmp(temp, "add") == 0)
-        {
-            program->bin_buff[ofs] = CMD_ADD;
-            ofs += sizeof(char);
-        }
-        else if (strcmp(temp, "sub") == 0)
-        {
-            program->bin_buff[ofs] = CMD_SUB;
-            ofs += sizeof(char);
-        }
-        else if (strcmp(temp, "mult") == 0)
-        {
-            program->bin_buff[ofs] = CMD_MULT;
-            ofs += sizeof(char);
-        }
-        else if (strcmp(temp, "segm") == 0)
-        {
-            program->bin_buff[ofs] = CMD_SEGM;
-            ofs += sizeof(char);
-        }
-        else if (strcmp(temp, "pow") == 0)
-        {
-            program->bin_buff[ofs] = CMD_POW;
-            ofs += sizeof(char);
-        }
-        else if (strcmp(temp, "sqrt") == 0)
-        {
-            program->bin_buff[ofs] = CMD_SQRT;
-            ofs += sizeof(char);
-        }
-        else if (strcmp(temp, "sin") == 0)
-        {
-            program->bin_buff[ofs] = CMD_SIN;
-            ofs += sizeof(char);
-        }
-        else if (strcmp(temp, "cos") == 0)
-        {
-            program->bin_buff[ofs] = CMD_COS;
-            ofs += sizeof(char);
-        }*/
     }
-    
     #undef DEF_CMD
+    
     free(temp);
     
     FILE* code = fopen(program->name, "w+b");   // Why not creating file when mode is "wb"?...
-    fwrite (program->bin_buff, ofs, 1, code);
+    fwrite (bin_buff, ofs, 1, code);
     fclose(code);
     
-    free (program->bin_buff);
+    free (bin_buff);
+}
+
+void PushProcessing (char* bin_buff, int* ofs, char* temp, int count)
+{
+    if (strpbrk(temp, "123456789"))
+    {
+        bin_buff[*ofs] = 1;
+        *ofs += sizeof(char);
+        printf (" 1 ");
+        
+        *((double*) (bin_buff + *ofs)) = atof(temp);
+        *ofs += sizeof(double);
+        printf ("%lg", atof(temp));
+    }
+    else
+    {
+        bin_buff[*ofs] = 2;
+        *ofs += sizeof(char);
+        printf (" 2 ");
+        
+        reg_number = FindRegNumber (temp, count);
+        bin_buff[*ofs] = reg_number;
+        *ofs += sizeof(char);
+        printf ("%d", reg_number);
+    }
 }
 
 int FindRegNumber (char* temp, int count)

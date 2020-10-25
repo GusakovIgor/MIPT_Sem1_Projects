@@ -88,8 +88,12 @@ int StackOK (MyStack* stk)
 
 void StackDump(MyStack* stk, char* func)
 {
-    FILE* Logs = fopen("Logs.txt", "a");                                                                              
-    int er_code = StackOK (stk);                                                                                      
+    //printf("OK\n");
+    FILE* Logs = fopen("Logs.txt", "a"); 
+    printf("OK\n");
+    int er_code = StackOK (stk); 
+    printf("OK\n");
+    printf("er_code = %d\n", er_code);                                                                                     
     if (er_code != 1)                                                                                                 
     {                                                                                                                                                                                 
         fprintf(Logs, "ERROR in function %s with code: %d\n", func, er_code);                                                                
@@ -107,9 +111,9 @@ void StackDump(MyStack* stk, char* func)
                         break;                                                                                            
             case (-2):  fprintf(Logs, "SIZE_ERROR: Capacity < size, or size < 0. Probably expansion works incorrect\n");  
                         break;                                                                                            
-            case (-1):  fprintf(Logs, "CHECK_IF_EMPTY_ERROR: Probably you put assert before checking if stack empty or something wrong with element stk->array[0]\n"); \
+            case (-1):  fprintf(Logs, "CHECK_IF_EMPTY_ERROR: Probably you put assert before checking if stack empty or something wrong with element stk->array[0]\n");
                         break;                                                                                            
-            case ( 0):  fprintf(Logs, "FILLING_ERROR: Some value in stk is NAN when it shouldn't be, or it's not NAN when should be\n"); \
+            case ( 0):  fprintf(Logs, "FILLING_ERROR: Some value in stk is NAN when it shouldn't be, or it's not NAN when should be\n");
                         break;                                                                                            
         }                                                                                                               
     }
@@ -145,7 +149,8 @@ void StackDump(MyStack* stk, char* func)
     fprintf(Logs, "      }\n");                                                                                       
     fprintf(Logs, "Canary_1R = %X\n", *((can_type*)((char*)stk->array + stk->capacity*sizeof(double))) );             
     fprintf(Logs, "\nCanary_2R = %X", *CANARY_2R);                                                                    
-    fprintf(Logs, "\n\n\n\n\n");                                                                                      
+    fprintf(Logs, "\n\n\n\n\n");   
+    printf("\nLAST_OK\n\n");                                                                                   
     fclose (Logs);
 }
 
@@ -155,6 +160,7 @@ void ASSERT_OK(MyStack* stk, char* func)
     if (StackOK(stk) < 1)  
     {                         
         printf ("\nYou can see, what's wrong in file \"Logs.txt\"\n\n");
+        printf("\"%s\"\n", func);
         StackDump(stk, func);    
         assert(!"OK");          
     }

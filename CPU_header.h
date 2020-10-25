@@ -1,4 +1,4 @@
-//#include <stdio.h>
+#include <stdio.h>
 //#include <stdlib.h>
 //#include <string.h>
 //#include <assert.h>
@@ -78,6 +78,7 @@ char*  NameProcessing (char* name);
 
 // Assembler file
 void Assembler (text* program);
+void PushProcessing (char* bin_buff, int* ofs, char* temp, int count);
 int  FindRegNumber (char* temp, int count);
 //--------------------------------------------------
 
@@ -86,7 +87,6 @@ struct text
     size_t num_words;
     char* name;
     char* buff;
-    char* bin_buff;
 };
 
 
@@ -94,11 +94,11 @@ struct CPU
 {
     MyStack* stack;
     
-    double* code;
-    
     int pc;
     
     double* registers;
+    
+    char* code;
 };
 
 

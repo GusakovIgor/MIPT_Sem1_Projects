@@ -1,6 +1,6 @@
 #include "MyStack.h"
 
-int main (int argc, const char* argv[])
+/*int main (int argc, const char* argv[])
 {
     LogsClear ();
     StackOK(NULL);
@@ -25,14 +25,14 @@ int main (int argc, const char* argv[])
     MyStack* stk = StackConstruct (capacity);
     assert (stk->size == 0);
     assert (stk->capacity == capacity);
-    
+    */
     /*Breaking stack
     stk->size = 3;
     ASSERT_OK (stk, "main");
     printf("Element in empty array = %lg", StackPop(stk));
     */
     
-    StackPush(stk, 3);
+    /*StackPush(stk, 3);
     StackPush(stk, 4);
     StackPush(stk, 1);
     StackPush(stk, 5);
@@ -50,7 +50,7 @@ int main (int argc, const char* argv[])
     #endif
     
     return 0;
-}
+}*/
 
 //-------------------------------------------------------------------------------------------------------
 //! StackConstruct function:
@@ -167,6 +167,7 @@ void StackPush (MyStack* stk, double elem)
     
     if (stk->is_empty)
     {
+        assert (!isnan(elem));
         stk->array[stk->size] = elem;
         stk->is_empty = false;
     }

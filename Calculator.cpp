@@ -20,14 +20,22 @@ int main (int argc, const char* argv[])
     
     processor->stack = StackConstruct (NUM_COMANDS);
     processor->registers = (double*) calloc (NUM_REGISTERS + 1, sizeof(double));
-    processor->pc = 0;
+    /*Signature
+    printf("sizeof(const char*) = %d\n", sizeof(const char*));
+    printf("sizeof(short) = %d\n", sizeof(short));
+    printf("sizeof(FileHeader) = %d\n", sizeof(FileHeader));
+    printf ("%c%c\n", processor->code[0], processor->code[1]);
     
+    processor->pc = sizeof(FileHeader);
+    //------------------------
+    */processor->pc = 0;
     
     #define DEF_CMD(name, num, arg, code)   \
             case CMD_##name: code break;    \
             
     while (processor->pc < code_size)
     {
+        //printf ("processor->pc = %d\n", processor->pc);
         switch ( (int) processor->code[processor->pc])
         {
             #include "commands.h"

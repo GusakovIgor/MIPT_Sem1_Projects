@@ -1,4 +1,4 @@
-#include <stdio.h>
+//#include <stdio.h>
 //#include <stdlib.h>
 //#include <string.h>
 //#include <assert.h>
@@ -6,12 +6,17 @@
 #include <ctype.h>
 #include "Stack/MyStack.h"
 
-#define MAX_FILENAME 30         // For program->name
-#define MAX_CODE_LEN 100000     // For program->bin_buff
-#define MAX_COMAND_LEN 10    
-#define NUM_COMANDS 13          // For arrays with names of comands
-#define NUM_REGISTERS 4         // For arrays with names of registers
+const int MAX_FILENAME   = 30;      // For program->name
+const int MAX_LABLE_NAME = 15;
+const int MAX_CODE_LEN   = 100000;  // For program->bin_buff
+const int MAX_COMAND_LEN = 10;       
+const int MAX_NUM_LABLES = 500;
+const int NUM_ASM        = 2;       // For number of calling Assembler()
+const int NUM_COMANDS    = 22;      // For arrays with names of comands
+const int NUM_REGISTERS  = 4;       // For arrays with names of registers
 
+const int NUMBER = 0;
+const int WORD   = 1;
 
 // DEFINING COMMANDS
 #define DEF_CMD(name, num, arg, code)  \
@@ -62,6 +67,7 @@ enum registers {    RAX = 1,
 struct text;
 struct CPU;
 struct FileHeader;
+struct lable;
 
 
 // Text_processing file
@@ -77,9 +83,15 @@ char*  NameProcessing (char* name);
 
 
 // Assembler file
-void Assembler (text* program);
-void PushProcessing (char* bin_buff, int* ofs, char* temp, int count);
-int  FindRegNumber (char* temp, int count);
+void Assembler (text* program, lable* lables, short version);
+void Sign_maker (short version, char* bin_buff, int* ofs);
+void MakeLable      (lable* lables, char* temp, char* check, int ofs, int count);
+int  SearchLable    (lable* lables, char* temp);
+
+void PushProcessing (char* bin_buff, int* ofs, char* temp, int count);                  // Thanks Uliana for that functions
+void PopProcessing  (char* bin_buff, int* ofs, char* temp, int count);                  // (I was trying to make it all in DEF_CMD macro)
+void JmpProcessing  (char* bin_buff, int* ofs, char* temp, int count, lable* lables);   //
+int  FindRegNumber  (char* temp, int count);
 //--------------------------------------------------
 
 struct text
@@ -104,8 +116,13 @@ struct CPU
 
 struct FileHeader
 {
-    short signature;
+    const char* signature;
     short version;
-    
-    size_t size;
+};
+
+
+struct lable
+{
+    int adr;
+    char name[MAX_LABLE_NAME];
 };

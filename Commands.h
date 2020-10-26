@@ -18,8 +18,7 @@ CMD_cos  = 12,
 
 DEF_CMD (hlt,  0, 0, 
                     {
-                    
-                    processor->pc++;    
+                    processor->pc = code_size;    
                     })
 
 DEF_CMD (in,   1, 0, 
@@ -120,7 +119,109 @@ DEF_CMD (cos, 12, 0,
                     processor->pc++;
                     })
 
-DEF_CMD (jmp, 13, 0, 
+DEF_CMD (jmp, 13, 1, 
                     {
                     processor->pc = processor->code[processor->pc + 1];
                     })
+
+DEF_CMD (ja,  14, 1, 
+                    {
+                    int temp1 = StackPop(processor->stack);
+                    int temp2 = StackPop(processor->stack);
+                    if (temp2 > temp1)
+                        {
+                            processor->pc = processor->code[processor->pc + 1];
+                        }
+                    else
+                        {
+                            processor->pc += sizeof(char) + sizeof(int);
+                        }
+                    })
+
+DEF_CMD (jae, 15, 1, 
+                    {
+                    int temp1 = StackPop(processor->stack);
+                    int temp2 = StackPop(processor->stack);
+                    if (temp2 >= temp1)
+                        {
+                            processor->pc = processor->code[processor->pc + 1];
+                        }
+                    else
+                        {
+                            processor->pc += sizeof(char) + sizeof(int);
+                        }
+                    })
+
+DEF_CMD (jb,  16, 1, 
+                    {
+                    int temp1 = StackPop(processor->stack);
+                    int temp2 = StackPop(processor->stack);
+                    if (temp2 < temp1)
+                        {
+                            processor->pc = processor->code[processor->pc + 1];
+                        }
+                    else
+                        {
+                            processor->pc += sizeof(char) + sizeof(int);
+                        }
+                    })
+
+DEF_CMD (jbe, 17, 1, 
+                    {
+                    int temp1 = StackPop(processor->stack);
+                    int temp2 = StackPop(processor->stack);
+                    if (temp2 <= temp1)
+                        {
+                            processor->pc = processor->code[processor->pc + 1];
+                        }
+                    else
+                        {
+                            processor->pc += sizeof(char) + sizeof(int);
+                        }
+                    })
+
+DEF_CMD (je,  18, 1, 
+                    {
+                    int temp1 = StackPop(processor->stack);
+                    int temp2 = StackPop(processor->stack);
+                    if (temp2 == temp1)
+                        {
+                            processor->pc = processor->code[processor->pc + 1];
+                        }
+                    else
+                        {
+                            processor->pc += sizeof(char) + sizeof(int);
+                        }
+                    })
+
+DEF_CMD (jne, 19, 1, 
+                    {
+                    int temp1 = StackPop(processor->stack);
+                    int temp2 = StackPop(processor->stack);
+                    if (temp2 != temp1)
+                        {
+                            processor->pc = processor->code[processor->pc + 1];
+                        }
+                    else
+                        {
+                            processor->pc += sizeof(char) + sizeof(int);
+                        }
+                    })
+DEF_CMD (jt,  20, 1, 
+                    {
+                    
+                    })
+
+DEF_CMD (call, 21, 1,
+                    { 
+                    StackPush (processor->stack, processor->pc + sizeof(char) + sizeof(int));
+                    processor->pc = processor->code[processor->pc + 1];
+                    })
+
+DEF_CMD (ret,  22, 0, 
+                    {
+                    processor->pc = StackPop(processor->stack);
+                    })
+//!!!!
+// If add something, don't forget to update NUM_COMANDS constant
+//!!!!

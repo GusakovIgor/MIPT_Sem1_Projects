@@ -3,7 +3,7 @@ MY_CODE = "jackofdimonds"
 action:
 	@echo $(MY_CODE)
 
-run: Calculator.exe
+run_calc: Calculator.exe
 	Calculator.exe $(MY_CODE)
 
 Calculator.exe: Calculator.cpp Text_processing.cpp Stack\Stack_Main.cpp Stack\Protection.cpp CPU_header.h Commands.h

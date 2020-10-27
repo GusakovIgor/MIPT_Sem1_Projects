@@ -11,6 +11,14 @@ out
 hlt
 
 Factorial:
+	push 0
+	push rcx
+	je :end
+
+	push 1
+	push rcx
+	je :end
+
 	push rax
 
 	push rbx

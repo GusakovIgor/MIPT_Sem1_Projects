@@ -3,6 +3,7 @@
 //#include <string.h>
 //#include <assert.h>
 #include <sys\stat.h>
+#include <memory.h>
 #include <ctype.h>
 #include "Stack/MyStack.h"
 
@@ -12,8 +13,8 @@ const int MAX_CODE_LEN   = 100000;  // For program->bin_buff
 const int MAX_COMAND_LEN = 10;       
 const int MAX_NUM_LABLES = 500;
 const int NUM_ASM        = 2;       // For number of calling Assembler()
-const int NUM_COMANDS    = 22;      // For arrays with names of comands
-const int NUM_REGISTERS  = 4;       // For arrays with names of registers
+const int NUM_COMANDS    = 25;      // For arrays with names of comands
+const int NUM_REGISTERS  = 6;       // For arrays with names of registers
 
 const int NUMBER = 0;
 const int WORD   = 1;
@@ -33,35 +34,9 @@ enum comands
 enum registers {    RAX = 1, 
                     RBX = 2, 
                     RCX = 3, 
-                    RDX = 4     };
-                    
-#define CheckErrors(cur_comand, cur_register, last_comand, line)                                                            \
-            if (last_comand != CMD_PUSH && last_comand != CMD_POP && cur_register != NUM_REGISTERS + 1)                     \
-            {                                                                                                               \
-                printf ("\n\nINPUT ERROR: You're trying to get register without comands for it on line %d\n", line);        \
-                printf ("             Please, use push (if you want to put register in stack)\n");                          \
-                printf ("                     or  pop  (if you want to get top from stack and put it in register)\n\n");    \
-                assert (!"OK");                                                                                             \
-            }                                                                                                               \
-                                                                                                                            \
-            if ((last_comand == CMD_PUSH || last_comand == CMD_POP) && cur_register > NUM_REGISTERS && (cur_comand >= NUM_COMANDS)) \
-            {                                                                                                               \
-                printf ("\n\nINPUT ERROR: You're trying to use wrong register on line %d\n", line);                         \
-                printf ("There are registers, you can use:\n");                                                             \
-                for (int count = 1; count <= NUM_REGISTERS; count++)                                                        \
-                    printf ("%s\n", register_array[count]);                                                                 \
-                printf ("\n");                                                                                              \
-                assert (!"OK");                                                                                             \
-            }                                                                                                               \
-                                                                                                                            \
-            if ((cur_comand < 0 || cur_comand >= NUM_COMANDS) && last_comand != CMD_PUSH && cur_register == NUM_REGISTERS + 1)  \
-            {                                                                                                               \
-                printf ("\n\nINPUT ERROR: There is incorrect comand or register name in input file on line %d\n", line);    \
-                printf ("Comand   code - %d (NUM_COMANDS = %d)\n", com_num, NUM_COMANDS);                                   \
-                printf ("Register code - %d  (NUM_REGISTERS = %d)\n\n", reg_num, NUM_REGISTERS);                            \
-                assert (!"OK");                                                                                             \
-            }                                                                                                               \
-                                                                                                                            \
+                    RDX = 4,
+                    CAT = 5,
+                    MYAU = 6     };
             
 
 struct text;
@@ -83,11 +58,12 @@ char*  NameProcessing (char* name);
 
 
 // Assembler file
-void Assembler (text* program, lable* lables, short version);
-void Sign_maker (short version, char* bin_buff, int* ofs);
-void MakeLable      (lable* lables, char* temp, char* check, int ofs, int count);
+void Assembler (text* program, char* bin_buff, lable* lables, int ofs);
+void Sign_maker (int version, char* bin_buff, int* ofs);
+void MakeLable      (lable* lables, char* temp, char* check, int* ofs, int count);
 int  SearchLable    (lable* lables, char* temp);
 
+void ComplicComProcessing (char* bin_buff, int* ofs, char* temp, int count, lable* lables, int num);
 void PushProcessing (char* bin_buff, int* ofs, char* temp, int count);                  // Thanks Uliana for that functions
 void PopProcessing  (char* bin_buff, int* ofs, char* temp, int count);                  // (I was trying to make it all in DEF_CMD macro)
 void JmpProcessing  (char* bin_buff, int* ofs, char* temp, int count, lable* lables);   //
@@ -105,6 +81,7 @@ struct text
 struct CPU
 {
     MyStack* stack;
+    MyStack* calls;
     
     int pc;
     
@@ -116,8 +93,8 @@ struct CPU
 
 struct FileHeader
 {
-    const char* signature;
-    short version;
+    const char signature[3];
+    int version;
 };
 
 

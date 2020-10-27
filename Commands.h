@@ -14,6 +14,16 @@ CMD_sqrt = 10,
 CMD_sin  = 11, 
 CMD_cos  = 12,
 
+CMD_jmp  = 13,
+CMD_ja   = 14,
+CMD_jae  = 15,
+CMD_jb   = 16,
+CMD_jbe  = 17,
+CMD_je   = 18,
+CMD_jne  = 19,
+CMD_jt   = 20,
+CMD_call = 21,
+CMD_ret  = 22
 */
 
 DEF_CMD (hlt,  0, 0, 
@@ -121,7 +131,7 @@ DEF_CMD (cos, 12, 0,
 
 DEF_CMD (jmp, 13, 1, 
                     {
-                    processor->pc = processor->code[processor->pc + 1];
+                    processor->pc = *(int*)(processor->code + processor->pc + 1);
                     })
 
 DEF_CMD (ja,  14, 1, 
@@ -130,7 +140,7 @@ DEF_CMD (ja,  14, 1,
                     int temp2 = StackPop(processor->stack);
                     if (temp2 > temp1)
                         {
-                            processor->pc = processor->code[processor->pc + 1];
+                            processor->pc = *(int*)(processor->code + processor->pc + 1);
                         }
                     else
                         {
@@ -144,7 +154,7 @@ DEF_CMD (jae, 15, 1,
                     int temp2 = StackPop(processor->stack);
                     if (temp2 >= temp1)
                         {
-                            processor->pc = processor->code[processor->pc + 1];
+                            processor->pc = *(int*)(processor->code + processor->pc + 1);
                         }
                     else
                         {
@@ -158,7 +168,7 @@ DEF_CMD (jb,  16, 1,
                     int temp2 = StackPop(processor->stack);
                     if (temp2 < temp1)
                         {
-                            processor->pc = processor->code[processor->pc + 1];
+                            processor->pc = *(int*)(processor->code + processor->pc + 1);
                         }
                     else
                         {
@@ -172,7 +182,7 @@ DEF_CMD (jbe, 17, 1,
                     int temp2 = StackPop(processor->stack);
                     if (temp2 <= temp1)
                         {
-                            processor->pc = processor->code[processor->pc + 1];
+                            processor->pc = *(int*)(processor->code + processor->pc + 1);
                         }
                     else
                         {
@@ -186,7 +196,7 @@ DEF_CMD (je,  18, 1,
                     int temp2 = StackPop(processor->stack);
                     if (temp2 == temp1)
                         {
-                            processor->pc = processor->code[processor->pc + 1];
+                            processor->pc = *(int*)(processor->code + processor->pc + 1);
                         }
                     else
                         {
@@ -200,7 +210,7 @@ DEF_CMD (jne, 19, 1,
                     int temp2 = StackPop(processor->stack);
                     if (temp2 != temp1)
                         {
-                            processor->pc = processor->code[processor->pc + 1];
+                            processor->pc = *(int*)(processor->code + processor->pc + 1);
                         }
                     else
                         {
@@ -214,13 +224,31 @@ DEF_CMD (jt,  20, 1,
 
 DEF_CMD (call, 21, 1,
                     { 
-                    StackPush (processor->stack, processor->pc + sizeof(char) + sizeof(int));
-                    processor->pc = processor->code[processor->pc + 1];
+                    StackPush (processor->calls , processor->pc + sizeof(char) + sizeof(int));
+                    processor->pc = *(int*)(processor->code + processor->pc + 1);
                     })
 
 DEF_CMD (ret,  22, 0, 
                     {
-                    processor->pc = StackPop(processor->stack);
+                    processor->pc = StackPop(processor->calls);
+                    })
+
+DEF_CMD (err, 23, 0,
+                    {
+                    printf("Discriminant < 0\n");
+                    processor->pc += sizeof(char);
+                    })
+
+DEF_CMD (noroots, 24, 0,
+                    {
+                    printf("No roots\n");
+                    processor->pc += sizeof(char);
+                    })
+
+DEF_CMD (infroots, 25, 0,
+                    {
+                    printf("INF roots\n");
+                    processor->pc += sizeof(char);
                     })
 //!!!!
 // If add something, don't forget to update NUM_COMANDS constant

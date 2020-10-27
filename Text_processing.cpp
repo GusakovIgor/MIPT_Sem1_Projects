@@ -24,7 +24,7 @@ char* NameProcessing (char* name)
         name[i] = extension[j];
     }
     
-    printf ("\nYou can see bite-code of your program in file: %s\n", name);
+    printf ("\nYou can see byte-code of your program in file: %s\n", name);
 
     return name;
 }

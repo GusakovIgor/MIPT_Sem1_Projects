@@ -3,26 +3,46 @@
 int main (int argc, const char* argv[])
 {
     text* program = (text*) calloc (1, sizeof(text));
+    assert (program);
     
     program->name = (char*) calloc (MAX_FILENAME, sizeof(char));
+    assert (program->name);
     program->name = (char*) argv[1];
     assert (strlen(program->name) < MAX_FILENAME);
     
     program = ProgramConstructor (program);
+    assert (program);
     
+    
+    char* bin_buff = (char*) calloc (MAX_CODE_LEN,   sizeof(char));
+    assert (bin_buff);
     
     lable*  lables = (lable*)  calloc (MAX_NUM_LABLES + 1, sizeof(lable));      // Plus 1 because user probably want to use labels 1-50
-    for (int i = 0; i < MAX_NUM_LABLES + 1; i++)                                // if MAX_NUM_LABELS = 50, so we've got labels 0-50
+    assert (lables);                                                            // if MAX_NUM_LABELS = 50, so we've got labels 0-50
+    
+    for (int i = 0; i < MAX_NUM_LABLES + 1; i++)
     {
         lables[i].adr = -1;
     }
     
+    int ofs = 1;
     for (int i = 0; i < NUM_ASM; i++)
     {
-        Assembler (program, lables, 4);
+        printf ("\nIteration %d of Assembler:\n", i + 1);
+        int ofs = 0;
+        Sign_maker (4, bin_buff, &ofs);
+        Assembler  (program, bin_buff, lables, ofs);
+        printf ("\n\n\n");
     }
+    /*
+    for (int i = 0; i < 20; i++)
+    {
+        printf ("lables[%d].adr = %d,\tlables[%d].name = %s\n", i, lables[i].adr , i, lables[i].name);
+    }
+    */
     
     free (lables);
+    free (bin_buff);
     
     free (program->name);
     free (program->buff);
@@ -32,54 +52,36 @@ int main (int argc, const char* argv[])
 }
 
 
-void Assembler (text* program, lable* lables, short version)
+void Assembler (text* program, char* bin_buff, lable* lables, int ofs)
 {
-    char* bin_buff = (char*) calloc (MAX_CODE_LEN,   sizeof(char));
-    char* temp     = (char*) calloc (MAX_COMAND_LEN, sizeof(char));
-    char* check    = (char*) calloc (MAX_COMAND_LEN, sizeof(char));
+    static size_t iter = 0;
     
-    int ofs = 0;
+    char* temp     = (char*) calloc (MAX_COMAND_LEN, sizeof(char)); assert (temp);
+    char* check    = (char*) calloc (MAX_COMAND_LEN, sizeof(char)); assert (check);
+    
     int pos = 0;
     int com_len = 0;
     int reg_number = 0;
     
-    static int iter = 0;
-    
-    //Sign_maker (version, bin_buff, &ofs);
-    
-    #define DEF_CMD(name, num, arg, code)                                   \
-        else if (strcmp(temp, #name) == 0)                                  \
-        {                                                                   \
-            bin_buff[ofs] = CMD_##name;                                     \
-            ofs += sizeof(char);                                            \
+    #define DEF_CMD(name, num, arg, code)                                           \
+        else if (strcmp(temp, #name) == 0)                                          \
+        {                                                                           \
+                                                                                    \
+            bin_buff[ofs] = CMD_##name;                                             \
+            ofs += sizeof(char);                                                    \
             printf ("%d", CMD_##name); \
-                                                                            \
-            if (num == CMD_push)                                            \
-            {                                                               \
-                count++;                                                    \
-                sscanf (program->buff + pos, "%s%n", temp, &com_len);       \
-                pos += com_len;                                             \
-                                                                            \
-                PushProcessing (bin_buff, &ofs, temp, count);               \
-            }                                                               \
-            else if (num == CMD_pop)                                        \
-            {                                                               \
-                count++;                                                    \
-                sscanf (program->buff + pos, "%s%n", temp, &com_len);       \
-                pos += com_len;                                             \
-                                                                            \
-                PopProcessing (bin_buff, &ofs, temp, count);                \
-            }                                                               \
-            else if ((CMD_jmp  <= num && num <=  CMD_jt) || num == CMD_call)\
-            {                                                               \
-                count++;                                                    \
-                sscanf (program->buff + pos, "%s%n", temp, &com_len);       \
-                pos += com_len;                                             \
-                                                                            \
-                JmpProcessing (bin_buff, &ofs, temp, count, lables);        \
-            }                                                               \
+                                                                                    \
+            if (arg > 0)                                                            \
+            {                                                                       \
+                count++;                                                            \
+                sscanf (program->buff + pos, "%s%n", temp, &com_len);               \
+                pos += com_len;                                                     \
+                                                                                    \
+                ComplicComProcessing (bin_buff, &ofs, temp, count, lables, num);    \
+            }                                                                       \
+                                                                                    \
             printf("\n");   \
-        }                                                                   \
+        }                                                                           \
     
     for (int count = 0; count < program->num_words; count++)
     {
@@ -89,9 +91,9 @@ void Assembler (text* program, lable* lables, short version)
         check = strchr(temp, ':');
         if (check)
         {
-            MakeLable (lables, temp, check, ofs, count + 1);    // count + 1 cause we counts from 0 and in debug user need from 1
             if (iter > 0)
                 continue;
+            MakeLable (lables, temp, check, &ofs, count + 1);    // count + 1 cause we counts from 0 and in debug user need from 1
         }
         #include "commands.h"
         else
@@ -106,16 +108,15 @@ void Assembler (text* program, lable* lables, short version)
     free (temp);
     free (check);
     
-    FILE* code = fopen(program->name, "w+b");   // Why not creating file when mode is "wb"?...
+    printf ("\n%s\n", program->name);
+    FILE* code = fopen(program->name, "wb+");   // Why not creating file when mode is "wb"?...
     fwrite (bin_buff, ofs, 1, code);
-    fclose(code);
-    
-    free (bin_buff);
+    fclose (code);
     
     iter++;
 }
 
-void MakeLable (lable* lables, char* temp, char* check, int ofs, int count)
+void MakeLable (lable* lables, char* temp, char* check, int* ofs, int count)
 {
     int mode = -1;
     static int last_word_lable = 1;
@@ -149,20 +150,26 @@ void MakeLable (lable* lables, char* temp, char* check, int ofs, int count)
     if (mode == NUMBER)
     {
         int cur_lable = atoi(temp);
-        if (cur_lable < last_word_lable)
+        if (cur_lable <= last_word_lable)
         {
             while (lables[last_word_lable].adr != -1)
                 last_word_lable++;
+            assert (last_word_lable < MAX_NUM_LABLES);
+            
+            
             lables[last_word_lable].adr = lables[cur_lable].adr;
-            strcpy(lables[last_word_lable].name, lables[cur_lable].name);
+            strcpy (lables[last_word_lable].name, lables[cur_lable].name);
+            strcpy (lables[cur_lable].name, "");
         }
-        lables[cur_lable].adr = ofs;
+        lables[cur_lable].adr = *ofs;
     }
     else if (mode == WORD)
     {
         while (lables[last_word_lable].adr != -1)
             last_word_lable++;
-        lables[last_word_lable].adr  =  ofs;
+        assert (last_word_lable < MAX_NUM_LABLES);
+        
+        lables[last_word_lable].adr  =  *ofs;
         strcpy(lables[last_word_lable].name, temp);
     }
     else
@@ -185,20 +192,37 @@ int SearchLable (lable* lables, char* temp)
     return -1;
 }
 
-//Debug It
-void Sign_maker (short version, char* bin_buff, int* ofs)
+
+void Sign_maker (int version, char* bin_buff, int* ofs)
 {
     FileHeader Sign = {"IG", version};
     
-    *(FileHeader*)(bin_buff + *ofs) = Sign;
+    memcpy(bin_buff, &Sign, sizeof(Sign));
     *ofs += sizeof(Sign);
 }
-//-------------------------------------------------------
+
+
+void ComplicComProcessing (char* bin_buff, int* ofs, char* temp, int count, lable* lables, int num)
+{
+    if (num == CMD_push)
+    {
+        PushProcessing (bin_buff, ofs, temp, count);
+    }
+    else if (num == CMD_pop)
+    {
+        PopProcessing  (bin_buff, ofs, temp, count);
+    }
+    else if ((CMD_jmp  <= num && num <=  CMD_jt) || num == CMD_call)
+    {
+        JmpProcessing  (bin_buff, ofs, temp, count, lables);
+    }
+}
+
 
 void PushProcessing (char* bin_buff, int* ofs, char* temp, int count)
 {
     
-    if (strpbrk(temp, "123456789"))
+    if (strpbrk(temp, "1234567890"))
     {
         bin_buff[*ofs] = 1;
         *ofs += sizeof(char);
@@ -239,6 +263,7 @@ void JmpProcessing (char* bin_buff, int* ofs, char* temp, int count, lable* labl
     {
         printf ("\nSyntax Error!\n");
         printf ("Please enter lable in format \":x\", where x is integer (number of needed lable)\n");
+        printf ("%s\n", temp);
         printf ("(in word %d)\n\n", count);
         assert (!"OK");
     }
@@ -266,6 +291,7 @@ void JmpProcessing (char* bin_buff, int* ofs, char* temp, int count, lable* labl
     if (mode == NUMBER)
     {
         cur_lable = atoi(temp);
+        printf ("LABLE HERE, %d\n", cur_lable);
     }
     else if (mode == WORD)
     {
@@ -276,10 +302,10 @@ void JmpProcessing (char* bin_buff, int* ofs, char* temp, int count, lable* labl
         printf ("\nError in JmpProcessing, cannot find out mode\n\n");
         assert (!"OK");
     }
+    if (cur_lable == -1)
+        printf("ERRROR");
     
-    //printf("MODE = %d", mode);
-    //printf("cur_lable = %d", cur_lable);
-    *(int*)(bin_buff + *ofs) = lables[cur_lable].adr;
+    *(int*)(bin_buff + *ofs) = (cur_lable == -1) ?  -1 : lables[cur_lable].adr;
     *ofs += sizeof(int);
     printf (" %d", lables[cur_lable].adr);
 }
@@ -303,9 +329,17 @@ int FindRegNumber (char* temp, int count)
     {
         return RDX;
     }
+    else if (strcmp(temp, "cat") == 0)
+    {
+        return CAT;
+    }
+    else if (strcmp(temp, "myau") == 0)
+    {
+        return MYAU;
+    }
     else
     {
-        printf ("ERROR in word %d\n", count);
+        printf ("ERROR in word %d (%s)\n", count, temp);
         printf ("Name of register after push or pop doesn't match any of the existing register");
         printf ("\n\n(word is any symbol-number combination that you entered)");
         assert (!"OK");

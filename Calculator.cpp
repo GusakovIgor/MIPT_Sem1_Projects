@@ -19,23 +19,22 @@ int main (int argc, const char* argv[])
     free (file_name);
     
     processor->stack = StackConstruct (NUM_COMANDS);
+    processor->calls = StackConstruct (NUM_COMANDS);
     processor->registers = (double*) calloc (NUM_REGISTERS + 1, sizeof(double));
-    /*Signature
-    printf("sizeof(const char*) = %d\n", sizeof(const char*));
-    printf("sizeof(short) = %d\n", sizeof(short));
-    printf("sizeof(FileHeader) = %d\n", sizeof(FileHeader));
-    printf ("%c%c\n", processor->code[0], processor->code[1]);
     
-    processor->pc = sizeof(FileHeader);
+    ///Signature
+    printf ("%c%cver", processor->code[0], processor->code[1]);
+    printf ("%d\n", *(int*)(processor->code + 4));              // Plus 4 cause memory distributor expands const char[3] to const char[4]
+    processor->pc = sizeof(FileHeader);                         // And only after that version is
     //------------------------
-    */processor->pc = 0;
     
     #define DEF_CMD(name, num, arg, code)   \
             case CMD_##name: code break;    \
             
     while (processor->pc < code_size)
     {
-        //printf ("processor->pc = %d\n", processor->pc);
+        //printf("OK");
+        //printf("%d\n", (int) processor->code[processor->pc]);
         switch ( (int) processor->code[processor->pc])
         {
             #include "commands.h"
@@ -66,6 +65,7 @@ int main (int argc, const char* argv[])
     #undef DEF_CMD
     
     processor->stack = StackDestruct (processor->stack);
+    processor->calls = StackDestruct (processor->calls);
     
     return 0;
 }

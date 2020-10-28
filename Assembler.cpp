@@ -1,7 +1,7 @@
 #include "CPU_header.h"
 
 int main (int argc, const char* argv[])
-{
+{   
     text* program = (text*) calloc (1, sizeof(text));
     assert (program);
     
@@ -13,24 +13,25 @@ int main (int argc, const char* argv[])
     program = ProgramConstructor (program);
     assert (program);
     
-    
     char* bin_buff = (char*) calloc (MAX_CODE_LEN,   sizeof(char));
     assert (bin_buff);
     
     lable*  lables = (lable*)  calloc (MAX_NUM_LABLES + 1, sizeof(lable));      // Plus 1 because user probably want to use labels 1-50
     assert (lables);                                                            // if MAX_NUM_LABELS = 50, so we've got labels 0-50
-    
     for (int i = 0; i < MAX_NUM_LABLES + 1; i++)
     {
         lables[i].adr = -1;
     }
     
-    int ofs = 1;
     for (int i = 0; i < NUM_ASM; i++)
     {
         printf ("\nIteration %d of Assembler:\n", i + 1);
         int ofs = 0;
-        Sign_maker (4, bin_buff, &ofs);
+        Sign_maker (bin_buff, &ofs);
+        
+        bin_buff[ofs] = CMD_START;
+        ofs += sizeof(char) + sizeof(int);
+        
         Assembler  (program, bin_buff, lables, ofs);
         printf ("\n\n\n");
     }
@@ -64,23 +65,29 @@ void Assembler (text* program, char* bin_buff, lable* lables, int ofs)
     int reg_number = 0;
     
     #define DEF_CMD(name, num, arg, code)                                           \
-        else if (strcmp(temp, #name) == 0)                                          \
+        else if (strcmpi(temp, #name) == 0)                                         \
         {                                                                           \
-                                                                                    \
-            bin_buff[ofs] = CMD_##name;                                             \
-            ofs += sizeof(char);                                                    \
-            printf ("%d", CMD_##name); \
-                                                                                    \
-            if (arg > 0)                                                            \
+            if (CMD_##name == CMD_START)                                            \
             {                                                                       \
-                count++;                                                            \
-                sscanf (program->buff + pos, "%s%n", temp, &com_len);               \
-                pos += com_len;                                                     \
-                                                                                    \
-                ComplicComProcessing (bin_buff, &ofs, temp, count, lables, num);    \
+                *(int*)(bin_buff + sizeof(FileHeader) + sizeof(char)) = ofs;        \
             }                                                                       \
+            else                                                                    \
+            {                                                                       \
+                bin_buff[ofs] = CMD_##name;                                         \
+                ofs += sizeof(char);                                                \
+                printf ("%d", CMD_##name); \
                                                                                     \
-            printf("\n");   \
+                if (arg > 0)                                                        \
+                {                                                                   \
+                    count++;                                                        \
+                    sscanf (program->buff + pos, "%s%n", temp, &com_len);           \
+                    pos += com_len;                                                 \
+                                                                                    \
+                    ComplicComProcessing (bin_buff, &ofs, temp, count, lables, num);\
+                }                                                                   \
+                                                                                    \
+                printf("\n");   \
+            }                                                                       \
         }                                                                           \
     
     for (int count = 0; count < program->num_words; count++)
@@ -108,7 +115,6 @@ void Assembler (text* program, char* bin_buff, lable* lables, int ofs)
     free (temp);
     free (check);
     
-    printf ("\n%s\n", program->name);
     FILE* code = fopen(program->name, "wb+");   // Why not creating file when mode is "wb"?...
     fwrite (bin_buff, ofs, 1, code);
     fclose (code);
@@ -193,9 +199,9 @@ int SearchLable (lable* lables, char* temp)
 }
 
 
-void Sign_maker (int version, char* bin_buff, int* ofs)
+void Sign_maker (char* bin_buff, int* ofs)
 {
-    FileHeader Sign = {"IG", version};
+    FileHeader Sign = {"IG", VERSION};
     
     memcpy(bin_buff, &Sign, sizeof(Sign));
     *ofs += sizeof(Sign);
@@ -204,15 +210,15 @@ void Sign_maker (int version, char* bin_buff, int* ofs)
 
 void ComplicComProcessing (char* bin_buff, int* ofs, char* temp, int count, lable* lables, int num)
 {
-    if (num == CMD_push)
+    if (num == CMD_PUSH)
     {
         PushProcessing (bin_buff, ofs, temp, count);
     }
-    else if (num == CMD_pop)
+    else if (num == CMD_POP)
     {
         PopProcessing  (bin_buff, ofs, temp, count);
     }
-    else if ((CMD_jmp  <= num && num <=  CMD_jt) || num == CMD_call)
+    else if ((CMD_JMP  <= num && num <=  CMD_JT) || num == CMD_CALL)
     {
         JmpProcessing  (bin_buff, ofs, temp, count, lables);
     }
@@ -291,7 +297,6 @@ void JmpProcessing (char* bin_buff, int* ofs, char* temp, int count, lable* labl
     if (mode == NUMBER)
     {
         cur_lable = atoi(temp);
-        printf ("LABLE HERE, %d\n", cur_lable);
     }
     else if (mode == WORD)
     {
@@ -302,8 +307,6 @@ void JmpProcessing (char* bin_buff, int* ofs, char* temp, int count, lable* labl
         printf ("\nError in JmpProcessing, cannot find out mode\n\n");
         assert (!"OK");
     }
-    if (cur_lable == -1)
-        printf("ERRROR");
     
     *(int*)(bin_buff + *ofs) = (cur_lable == -1) ?  -1 : lables[cur_lable].adr;
     *ofs += sizeof(int);
@@ -313,27 +316,27 @@ void JmpProcessing (char* bin_buff, int* ofs, char* temp, int count, lable* labl
 
 int FindRegNumber (char* temp, int count)
 {
-    if (strcmp(temp, "rax") == 0)
+    if (strcmpi(temp, "rax") == 0)
     {
         return RAX;
     }
-    else if (strcmp(temp, "rbx") == 0)
+    else if (strcmpi(temp, "rbx") == 0)
     {
         return RBX;
     }
-    else if (strcmp(temp, "rcx") == 0)
+    else if (strcmpi(temp, "rcx") == 0)
     {
         return RCX;
     }
-    else if (strcmp(temp, "rdx") == 0)
+    else if (strcmpi(temp, "rdx") == 0)
     {
         return RDX;
     }
-    else if (strcmp(temp, "cat") == 0)
+    else if (strcmpi(temp, "cat") == 0)
     {
         return CAT;
     }
-    else if (strcmp(temp, "myau") == 0)
+    else if (strcmpi(temp, "myau") == 0)
     {
         return MYAU;
     }

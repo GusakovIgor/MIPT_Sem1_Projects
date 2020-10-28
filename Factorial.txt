@@ -1,3 +1,4 @@
+start
 push 1
 pop rax
 push 1

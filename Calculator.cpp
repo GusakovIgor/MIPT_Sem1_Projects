@@ -11,7 +11,7 @@ int main (int argc, const char* argv[])
     
     FILE* file = fopen (file_name, "rb");
     
-    processor->code = (char*) calloc (MAX_CODE_LEN, sizeof(char));                  // HOW CAN WE SAVE THIS MEMORY?
+    processor->code = (char*) calloc (MAX_CODE_LEN, sizeof(char));
     size_t code_size = fread (processor->code, sizeof(char), MAX_CODE_LEN, file);
     
     fclose (file);
@@ -23,9 +23,10 @@ int main (int argc, const char* argv[])
     processor->registers = (double*) calloc (NUM_REGISTERS + 1, sizeof(double));
     
     ///Signature
-    printf ("%c%cver", processor->code[0], processor->code[1]);
+    printf ("%c%c", processor->code[0], processor->code[1]);
     printf ("%d\n", *(int*)(processor->code + 4));              // Plus 4 cause memory distributor expands const char[3] to const char[4]
-    processor->pc = sizeof(FileHeader);                         // And only after that version is
+    assert (*(int*)(processor->code + 4) == VERSION);           // And only after that version is
+    processor->pc = sizeof(FileHeader);
     //------------------------
     
     #define DEF_CMD(name, num, arg, code)   \

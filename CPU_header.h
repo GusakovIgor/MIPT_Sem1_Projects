@@ -13,8 +13,9 @@ const int MAX_CODE_LEN   = 100000;  // For program->bin_buff
 const int MAX_COMAND_LEN = 10;       
 const int MAX_NUM_LABLES = 500;
 const int NUM_ASM        = 2;       // For number of calling Assembler()
-const int NUM_COMANDS    = 25;      // For arrays with names of comands
+const int NUM_COMANDS    = 26;      // For arrays with names of comands
 const int NUM_REGISTERS  = 6;       // For arrays with names of registers
+const int VERSION        = 5;
 
 const int NUMBER = 0;
 const int WORD   = 1;
@@ -29,6 +30,7 @@ enum comands
 };
 
 #undef DEF_CMD
+
 // END OF DEFINING COMMANDS
 
 enum registers {    RAX = 1, 
@@ -59,7 +61,7 @@ char*  NameProcessing (char* name);
 
 // Assembler file
 void Assembler (text* program, char* bin_buff, lable* lables, int ofs);
-void Sign_maker (int version, char* bin_buff, int* ofs);
+void Sign_maker (char* bin_buff, int* ofs);
 void MakeLable      (lable* lables, char* temp, char* check, int* ofs, int count);
 int  SearchLable    (lable* lables, char* temp);
 

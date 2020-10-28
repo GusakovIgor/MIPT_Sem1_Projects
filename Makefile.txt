@@ -14,4 +14,3 @@ run_asm: Assembler.exe
 
 Assembler.exe: $(MY_CODE) Assembler.cpp Text_processing.cpp CPU_header.h Commands.h
 	g++ -w Assembler.cpp Text_processing.cpp -o Assembler.exe
-

@@ -1,24 +1,27 @@
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <string.h>
-//#include <assert.h>
+#include "TXLib.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 #include <sys\stat.h>
 #include <memory.h>
 #include <ctype.h>
 #include "Stack/MyStack.h"
 
-const int MAX_FILENAME   = 30;      // For program->name
-const int MAX_LABLE_NAME = 15;
-const int MAX_CODE_LEN   = 100000;  // For program->bin_buff
-const int MAX_COMAND_LEN = 10;       
-const int MAX_NUM_LABLES = 500;
-const int NUM_ASM        = 2;       // For number of calling Assembler()
-const int NUM_COMANDS    = 26;      // For arrays with names of comands
-const int NUM_REGISTERS  = 6;       // For arrays with names of registers
-const int VERSION        = 5;
+const int MAX_FILENAME     = 30;      // For program->name
+const int MAX_LABLE_NAME   = 15;
+const int MAX_CODE_LEN     = 100000;  // For program->bin_buff
+const int MAX_COMAND_LEN   = 10;       
+const int MAX_NUM_LABLES   = 500;
+const int NUM_ASM          = 2;       // For number of calling Assembler()
+const int STACK_START_SIZE = 100;      // For arrays with names of comands
+const int NUM_REGISTERS    = 6;       // For arrays with names of registers
+const int VERSION          = 5;
+const int RAM_SIZE         = 100;
+const int VRAM_SIZE        = 1000;
 
-const int NUMBER = 0;
-const int WORD   = 1;
+const int MODE_NUMBER = 0;
+const int MODE_WORD   = 1;
 
 // DEFINING COMMANDS
 #define DEF_CMD(name, num, arg, code)  \
@@ -66,10 +69,21 @@ void MakeLable      (lable* lables, char* temp, char* check, int* ofs, int count
 int  SearchLable    (lable* lables, char* temp);
 
 void ComplicComProcessing (char* bin_buff, int* ofs, char* temp, int count, lable* lables, int num);
+char ModeProcessing (char* temp_1, char* temp_2, int count);
+void ArgInsert      (char* bin_buff, int* ofs, char* temp, int count);
 void PushProcessing (char* bin_buff, int* ofs, char* temp, int count);                  // Thanks Uliana for that functions
 void PopProcessing  (char* bin_buff, int* ofs, char* temp, int count);                  // (I was trying to make it all in DEF_CMD macro)
 void JmpProcessing  (char* bin_buff, int* ofs, char* temp, int count, lable* lables);   //
 int  FindRegNumber  (char* temp, int count);
+//--------------------------------------------------
+
+// Calculator file
+CPU* CPU_Construct  (char* file_name);
+CPU* CPU_Destruct    (CPU* processor);
+void CodeReader      (CPU* processor, char* file_name);
+void SignatureCheck  (CPU* processor);
+void StackDebugPrint (CPU* processor);
+double* RAM_Maker ();
 //--------------------------------------------------
 
 struct text
@@ -90,6 +104,7 @@ struct CPU
     double* registers;
     
     char* code;
+    size_t code_size;
 };
 
 

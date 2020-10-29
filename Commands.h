@@ -28,7 +28,7 @@ CMD_RET  = 22
 
 DEF_CMD (HLT,  0, 0, 
                     {
-                    processor->pc = code_size;    
+                    processor->pc = processor->code_size;    
                     })
 
 DEF_CMD (IN,   1, 0, 
@@ -47,22 +47,24 @@ DEF_CMD (OUT,  2, 0,
 
 DEF_CMD (PUSH, 3, 2, 
                     {
-                    if (processor->code[processor->pc + 1] == 1)
+                    ++processor->pc;
+                    int mode = processor->code[processor->pc++];
+                    double arg = 0;
+                    if (mode & 1)
                         {
-                            StackPush (processor->stack, *(double*)(processor->code + processor->pc + 2));
-                            processor->pc += 2*sizeof(char) + sizeof(double);
+                            arg += processor->registers[processor->code[processor->pc++]];
                         }
-                    else if (processor->code[processor->pc + 1] == 2)
+                    if ((mode & 2)/2)
                         {
-                            StackPush (processor->stack, processor->registers[processor->code[processor->pc + 2]]);
-                            processor->pc += 3*sizeof(char);
+                            arg += *(double*)(processor->code + processor->pc);
+                            processor->pc += sizeof(double);
                         }
-                    else
+                    if ((mode & 4)/4)
                         {
-                            printf ("You've got biiig troubles, my dear)");
-                            printf ("\nYour bite-code is incorrect");
-                            assert (!"OK");
+                            arg = *(RAM + (int) arg);
                         }
+                    StackPush (processor->stack, arg);
+                    //
                     })
 
 DEF_CMD (POP,  4, 2, 
